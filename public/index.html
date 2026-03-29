@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fuel Watch Live</title>
+    <meta
+      name="description"
+      content="Stream-ready Australia and New Zealand fuel reserve comparison dashboard with official source context, market movement, and side-by-side countdown modelling."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-orb"></div>
+          <div>
+            <p class="eyebrow">Stream Dashboard</p>
+            <h1>Fuel Watch Live</h1>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="refreshButton" class="ghost-button" type="button">Refresh</button>
+          <button id="streamButton" class="primary-button" type="button">Stream Mode</button>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="hero panel">
+          <div class="hero-copy">
+            <p class="eyebrow">Australia + New Zealand</p>
+            <h2 id="heroTitle">Loading comparison view...</h2>
+            <p id="heroSummary" class="hero-summary">
+              Pulling reserve context, market data, and linked source pages for both countries.
+            </p>
+            <div class="ticker-wrap">
+              <div class="ticker ticker-scroll" id="headlineTicker"></div>
+            </div>
+          </div>
+
+          <div class="hero-meta">
+            <div class="meta-chip">
+              <span class="meta-label">Last refresh</span>
+              <strong id="lastRefreshLabel">...</strong>
+            </div>
+            <div class="meta-chip">
+              <span class="meta-label">Source layer</span>
+              <strong id="sourceLayerLabel">AU + NZ + market</strong>
+            </div>
+            <div class="meta-chip">
+              <span class="meta-label">Channel</span>
+              <strong id="channelLabel">...</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="support-strip panel">
+          <div>
+            <p class="eyebrow">Channel Positioning</p>
+            <h3 id="supportTitle">Built for live commentary</h3>
+            <p id="supportText" class="hero-summary"></p>
+          </div>
+          <div class="support-actions">
+            <div class="support-chip">
+              <span class="meta-label">On-screen disclaimer</span>
+              <strong id="disclaimerLabel">...</strong>
+            </div>
+            <a id="supportLink" class="primary-button support-link" href="#" target="_blank" rel="noreferrer">Support link</a>
+          </div>
+        </section>
+
+        <section class="countdown-board panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Lowest Fuel Stock Countdown</p>
+              <h3>Fastest depletion clock for each country</h3>
+            </div>
+            <a class="section-link" href="/countdown.html" target="_blank" rel="noreferrer">Open countdown-only view</a>
+          </div>
+          <div class="countdown-grid" id="countdownGrid"></div>
+        </section>
+
+        <section class="compare-grid">
+          <article class="panel country-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Australia</p>
+                <h3 id="auTitle">Official baseline</h3>
+              </div>
+              <div class="section-note" id="auStatsAsOf"></div>
+            </div>
+            <div class="country-summary" id="auSummary"></div>
+            <div class="reserve-grid reserve-grid-country" id="auReserveGrid"></div>
+            <div class="scenario-tabs" id="auScenarioTabs"></div>
+            <div class="scenario-grid" id="auScenarioGrid"></div>
+            <div class="host-notes" id="auHostNotes"></div>
+          </article>
+
+          <article class="panel country-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">New Zealand</p>
+                <h3 id="nzTitle">Official baseline</h3>
+              </div>
+              <div class="section-note" id="nzStatsAsOf"></div>
+            </div>
+            <div class="country-summary" id="nzSummary"></div>
+            <div class="reserve-grid reserve-grid-country" id="nzReserveGrid"></div>
+            <div class="scenario-tabs" id="nzScenarioTabs"></div>
+            <div class="scenario-grid" id="nzScenarioGrid"></div>
+            <div class="host-notes" id="nzHostNotes"></div>
+          </article>
+        </section>
+
+        <section class="split-grid">
+          <article class="panel market-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Shared Market Context</p>
+                <h3>Brent and FX</h3>
+              </div>
+              <div id="marketSource" class="section-note"></div>
+            </div>
+            <div class="market-cards" id="marketCards"></div>
+          </article>
+
+          <article class="panel history-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Saved History</p>
+                <h3>Your own snapshot trail</h3>
+              </div>
+              <div class="section-note">Builds as the app refreshes</div>
+            </div>
+            <div class="history-list" id="historyList"></div>
+          </article>
+        </section>
+
+        <section class="compare-grid">
+          <article class="panel report-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Australia Sources</p>
+                <h3>Reports and official view</h3>
+              </div>
+              <a id="auReportsLandingLink" class="section-link" href="#" target="_blank" rel="noreferrer">Open landing page</a>
+            </div>
+            <div class="report-grid" id="auReportGrid"></div>
+            <div class="iframe-frame">
+              <iframe id="auOfficialFrame" title="Australia official DCCEEW MSO viewer" loading="lazy" allowfullscreen></iframe>
+            </div>
+          </article>
+
+          <article class="panel report-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">New Zealand Sources</p>
+                <h3>Linked source cards</h3>
+              </div>
+              <a id="nzReportsLandingLink" class="section-link" href="#" target="_blank" rel="noreferrer">Open landing page</a>
+            </div>
+            <div class="report-grid" id="nzReportGrid"></div>
+            <div class="source-link-stack" id="nzOfficialLinks"></div>
+          </article>
+        </section>
+
+        <section class="panel source-status-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Feed Status</p>
+              <h3>What is live right now</h3>
+            </div>
+          </div>
+          <div class="source-status-grid" id="sourceStatusGrid"></div>
+        </section>
+
+        <section class="footer-strip panel">
+          <div>
+            <p class="eyebrow">Production Notes</p>
+            <h3>How to use this on stream</h3>
+          </div>
+          <ul class="flat-list">
+            <li>Use browser source at `http://localhost:8788/?stream=1`.</li>
+            <li>Frame the show as AU vs NZ pressure, not as weather-cam content.</li>
+            <li>Keep this as its own stream identity if you want to monetise it cleanly.</li>
+          </ul>
+        </section>
+
+        <section id="warningPanel" class="warning-panel"></section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

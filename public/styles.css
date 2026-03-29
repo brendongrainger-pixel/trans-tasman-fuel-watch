@@ -1,0 +1,713 @@
+:root {
+  --bg: #071317;
+  --bg-soft: #0b1f25;
+  --panel: rgba(8, 28, 34, 0.86);
+  --panel-strong: rgba(10, 35, 43, 0.96);
+  --border: rgba(145, 219, 210, 0.14);
+  --text: #ecfff9;
+  --muted: #9bbab4;
+  --accent: #12e6c8;
+  --accent-soft: rgba(18, 230, 200, 0.12);
+  --danger: #ff7f50;
+  --warn: #ffd166;
+  --shadow: 0 30px 120px rgba(0, 0, 0, 0.35);
+  --radius: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(18, 230, 200, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 127, 80, 0.14), transparent 22%),
+    linear-gradient(180deg, #061116 0%, #071317 35%, #050d10 100%);
+  color: var(--text);
+  font-family:
+    "Avenir Next",
+    "Segoe UI",
+    sans-serif;
+}
+
+body.stream-mode .topbar,
+body.stream-mode .footer-strip {
+  display: none;
+}
+
+body.stream-mode .dashboard {
+  padding-top: 24px;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-orb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 35%, #9effef, var(--accent) 52%, #0d8b79 100%);
+  box-shadow:
+    0 0 0 8px rgba(18, 230, 200, 0.09),
+    0 0 32px rgba(18, 230, 200, 0.36);
+}
+
+.brand-lockup h1,
+.section-head h3,
+.hero h2,
+.footer-strip h3 {
+  margin: 0;
+  font-family:
+    "Arial Narrow",
+    "Franklin Gothic Medium",
+    sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.74rem;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ghost-button,
+.primary-button {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 12px 18px;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.ghost-button {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+}
+
+.primary-button {
+  background: linear-gradient(135deg, rgba(18, 230, 200, 0.18), rgba(18, 230, 200, 0.06));
+  color: var(--text);
+}
+
+.ghost-button:hover,
+.primary-button:hover,
+.section-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(18, 230, 200, 0.42);
+}
+
+.dashboard {
+  display: grid;
+  gap: 18px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+}
+
+.hero {
+  padding: 28px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 2.1fr 1fr;
+}
+
+.hero-summary {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 70ch;
+}
+
+.hero-meta {
+  display: grid;
+  gap: 12px;
+}
+
+.meta-chip {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.meta-label,
+.section-note {
+  display: block;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.ticker {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ticker-wrap {
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.ticker-scroll {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  min-width: max-content;
+  animation: marquee 26s linear infinite;
+}
+
+.ticker-chip {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #d9f8f1;
+  font-size: 0.92rem;
+}
+
+.reserve-grid,
+.report-grid,
+.market-cards,
+.scenario-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.reserve-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reserve-grid-country {
+  margin-top: 18px;
+}
+
+.reserve-card,
+.market-card,
+.report-card,
+.scenario-card {
+  padding: 20px;
+  background: var(--panel-strong);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.reserve-card::before,
+.market-card::before,
+.report-card::before,
+.scenario-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(18, 230, 200, 0.18), transparent 68%);
+  pointer-events: none;
+}
+
+.reserve-header,
+.market-header,
+.report-header,
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+}
+
+.reserve-title,
+.market-title,
+.report-title {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.big-number {
+  margin: 18px 0 4px;
+  font-size: clamp(2.4rem, 4vw, 4rem);
+  line-height: 0.92;
+  font-family:
+    "Arial Black",
+    "Avenir Next Condensed",
+    sans-serif;
+}
+
+.number-caption,
+.micro-copy,
+.report-meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.reserve-metrics {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metric-pill {
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #d1ece6;
+  font-size: 0.86rem;
+}
+
+.split-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1.2fr 1fr;
+}
+
+.compare-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.split-grid-wide {
+  grid-template-columns: 1.1fr 0.9fr;
+}
+
+.country-panel,
+.market-panel,
+.scenario-panel,
+.report-panel,
+.source-panel,
+.footer-strip,
+.support-strip,
+.host-panel,
+.history-panel,
+.source-status-panel {
+  padding: 24px;
+}
+
+.support-strip {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1.4fr 1fr;
+  align-items: center;
+}
+
+.support-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.support-chip {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.support-link {
+  text-decoration: none;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.country-summary,
+.source-link-stack {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.countdown-board {
+  padding: 24px;
+}
+
+.countdown-grid {
+  margin-top: 18px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.countdown-card {
+  padding: 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.countdown-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.countdown-fuel {
+  color: var(--accent);
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
+.countdown-timer {
+  margin: 18px 0 10px;
+  font-size: clamp(2rem, 4vw, 3.8rem);
+  line-height: 0.92;
+  font-family: "Arial Black", "Avenir Next Condensed", sans-serif;
+  letter-spacing: 0.03em;
+}
+
+.countdown-subtext {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.mini-countdown-grid {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mini-countdown-card {
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mini-countdown-label {
+  color: var(--accent);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.mini-countdown-value {
+  margin-top: 8px;
+  font-size: 1.1rem;
+  line-height: 1.05;
+  font-family: "Arial Black", "Avenir Next Condensed", sans-serif;
+}
+
+.mini-countdown-meta {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.market-cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.trend-up {
+  color: var(--danger);
+}
+
+.trend-down {
+  color: #6ef0bf;
+}
+
+.sparkline {
+  width: 100%;
+  height: 68px;
+  margin-top: 14px;
+}
+
+.scenario-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.tab-button {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  border-color: rgba(18, 230, 200, 0.5);
+  background: rgba(18, 230, 200, 0.12);
+}
+
+.scenario-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scenario-value {
+  font-size: 2rem;
+  margin: 10px 0 4px;
+  font-family:
+    "Arial Black",
+    sans-serif;
+}
+
+.section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.host-notes,
+.history-list,
+.source-status-grid {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.host-note,
+.history-item,
+.source-status-card {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--panel-strong);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.host-note {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.note-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 230, 200, 0.12);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.history-item strong,
+.source-status-card strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.source-status-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-live,
+.status-fallback,
+.status-offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+}
+
+.status-live {
+  color: #6ef0bf;
+}
+
+.status-fallback {
+  color: var(--warn);
+}
+
+.status-offline {
+  color: var(--danger);
+}
+
+.report-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.report-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 14px 0;
+  background:
+    linear-gradient(135deg, rgba(18, 230, 200, 0.1), rgba(255, 255, 255, 0.04)),
+    #112126;
+}
+
+.iframe-frame {
+  margin-top: 18px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 420px;
+}
+
+.iframe-frame iframe {
+  width: 100%;
+  min-height: 420px;
+  border: 0;
+  background: #081419;
+}
+
+.flat-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.warning-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.warning-card {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 209, 102, 0.08);
+  border: 1px solid rgba(255, 209, 102, 0.18);
+  color: #ffebbd;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.status-badge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 12px currentColor;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-28%);
+  }
+}
+
+@media (max-width: 1100px) {
+  .hero,
+  .split-grid,
+  .support-strip,
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reserve-grid,
+  .scenario-grid,
+  .report-grid,
+  .source-status-grid,
+  .countdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mini-countdown-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 14px;
+  }
+
+  .topbar {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .reserve-grid,
+  .market-cards,
+  .scenario-grid,
+  .report-grid,
+  .source-status-grid,
+  .countdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero,
+  .market-panel,
+  .scenario-panel,
+  .report-panel,
+  .source-panel,
+  .footer-strip,
+  .support-strip,
+  .host-panel,
+  .history-panel,
+  .source-status-panel {
+    padding: 18px;
+  }
+
+  .big-number {
+    font-size: 2.6rem;
+  }
+}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fuel Ticker</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      html,
+      body {
+        background: transparent;
+      }
+
+      .ticker-shell {
+        min-height: 100vh;
+        display: flex;
+        align-items: end;
+        padding: 0;
+      }
+
+      .ticker-lower-third {
+        width: 100%;
+        background: linear-gradient(90deg, rgba(4, 16, 20, 0.94), rgba(7, 19, 23, 0.94));
+        border-top: 1px solid rgba(145, 219, 210, 0.18);
+        border-bottom: 1px solid rgba(145, 219, 210, 0.18);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 18px;
+        align-items: center;
+        padding: 14px 18px;
+      }
+
+      .ticker-brand {
+        white-space: nowrap;
+      }
+
+      .ticker-track {
+        overflow: hidden;
+      }
+
+      .ticker-line {
+        display: inline-flex;
+        min-width: max-content;
+        gap: 12px;
+        animation: marquee 30s linear infinite;
+      }
+
+      .ticker-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: #d9f8f1;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="ticker-shell">
+      <section class="ticker-lower-third">
+        <div class="ticker-brand">
+          <p class="eyebrow">Fuel Watch</p>
+          <strong id="brandLabel">Loading...</strong>
+        </div>
+        <div class="ticker-track">
+          <div class="ticker-line" id="tickerLine"></div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/ticker.js"></script>
+  </body>
+  </html>
