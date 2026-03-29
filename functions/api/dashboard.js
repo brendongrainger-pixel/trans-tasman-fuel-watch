@@ -15,8 +15,8 @@ const FALLBACK_DATA = {
     tagline: "Australia and New Zealand fuel countdown live",
     accent: "#12e6c8",
     supportText:
-      "Live coverage of fuel pressure across Australia and New Zealand. Subscribe, share the stream, and swap in your own support link before going public.",
-    supportUrl: "",
+      "Live coverage of fuel pressure across Australia and New Zealand. If you want to support the project, you can help keep the stream running here.",
+    supportUrl: "https://buymeacoffee.com/transtasmanfuelwatch?new=1",
     disclaimer:
       "Public-interest dashboard using live source links and scenario modelling. It is commentary, not official emergency guidance or financial advice.",
   },
