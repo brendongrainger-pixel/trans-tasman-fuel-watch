@@ -383,7 +383,7 @@ function parseNzOfficialStats(html) {
   const statsAsOf = statsAsOfMatch?.[1] || publishedMatch?.[1] || FALLBACK_DATA.nz.official.statsAsOf;
 
   const rowMatch = html.match(
-    /<td><strong>Total NZ stock\*<\/strong><\/td>\s*<td><strong>(?:&nbsp;|\s)*<\/strong><\/td>\s*<td><strong>([0-9]+(?:\.[0-9]+)?)<\/strong><\/td>\s*<td><strong>([0-9]+(?:\.[0-9]+)?)<\/strong><\/td>\s*<td><strong>([0-9]+(?:\.[0-9]+)?)<\/strong><\/td>/i,
+    /Total NZ stock\*[\s\S]{0,250}?<td>\s*<strong>([0-9]+(?:\.[0-9]+)?)<\/strong>\s*<\/td>[\s\S]{0,120}?<td>\s*<strong>([0-9]+(?:\.[0-9]+)?)<\/strong>\s*<\/td>[\s\S]{0,120}?<td>\s*<strong>([0-9]+(?:\.[0-9]+)?)<\/strong>\s*<\/td>/i,
   );
 
   if (!rowMatch) {
