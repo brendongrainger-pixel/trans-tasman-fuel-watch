@@ -192,6 +192,12 @@ function isoFromDaysAndRefresh(days, refreshedAt) {
   return new Date(refreshMs + Number(days) * 24 * 60 * 60 * 1000).toISOString();
 }
 
+function isoFromDaysAndBasis(days, basisAt, refreshedAt) {
+  const basisMs = new Date(basisAt || refreshedAt).getTime();
+  if (!Number.isFinite(basisMs)) return "";
+  return new Date(basisMs + Number(days) * 24 * 60 * 60 * 1000).toISOString();
+}
+
 function resolveStableTarget(key, targetIso, fallbackDays, refreshedAt, fingerprint) {
   const fallbackIso = isoFromDaysAndRefresh(fallbackDays, refreshedAt);
   const candidateIso = targetIso || fallbackIso;
@@ -221,12 +227,13 @@ function resolveStableTarget(key, targetIso, fallbackDays, refreshedAt, fingerpr
 }
 
 function miniCountdownHtml(country, fuel, refreshedAt) {
+  const basisAt = country.summary.basisAt || refreshedAt;
   const depletionAt = resolveStableTarget(
     `${country.countryCode}:${fuel.key}`,
-    "",
+    isoFromDaysAndBasis(fuel.days, basisAt, refreshedAt),
     fuel.days,
     refreshedAt,
-    `${country.official.statsAsOf}|${country.summary.basisAt || refreshedAt}|${fuel.key}|${fuel.days}`,
+    `${country.official.statsAsOf}|${basisAt}|${fuel.key}|${fuel.days}`,
   );
   const countdown = getCountdownParts(depletionAt, fuel.days, refreshedAt);
   return `
@@ -240,7 +247,7 @@ function miniCountdownHtml(country, fuel, refreshedAt) {
       >
         ${countdown.text}
       </div>
-      <div class="mini-countdown-meta">${formatNumber(fuel.days, 1)} days cover</div>
+      <div class="mini-countdown-meta">${formatNumber(fuel.days, 1)} days reported cover</div>
     </div>
   `;
 }
