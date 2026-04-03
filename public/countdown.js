@@ -132,6 +132,16 @@ function miniCountdownHtml(country, fuel, refreshedAt) {
   `;
 }
 
+function countdownUpdateNote(country) {
+  if (country.countryCode === "AU") {
+    return "Awaiting next DCCEEW weekly Saturday update.";
+  }
+  if (country.countryCode === "NZ") {
+    return "Awaiting next MBIE fuel stocks update.";
+  }
+  return "Awaiting next official source update.";
+}
+
 function render(data) {
   const countries = Object.values(data.countries);
   elements.countdownHero.textContent = "Australia and New Zealand lowest-stock clocks";
@@ -177,7 +187,7 @@ function render(data) {
           </div>
           <div class="countdown-filler">
             <div class="countdown-filler-text">
-              Live countdown board for ${country.countryName}. Primary clock tracks the tightest official fuel lane from the source observation date.
+              Live countdown board for ${country.countryName}. Primary clock tracks the tightest official fuel lane from the source observation date. ${countdownUpdateNote(country)}
             </div>
           </div>
         </article>
