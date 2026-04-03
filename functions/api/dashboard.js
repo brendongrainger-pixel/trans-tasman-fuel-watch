@@ -246,11 +246,12 @@ async function fetchText(url) {
   return response.text();
 }
 
-async function fetchJson(url) {
+async function fetchJson(url, extraHeaders = {}) {
   const response = await fetch(url, {
     headers: {
       "User-Agent": "Fuel-Watch-Live/0.1",
       Accept: "application/json",
+      ...extraHeaders,
     },
   });
 
@@ -270,7 +271,58 @@ async function fetchCsv(url) {
   return response.text();
 }
 
-function parseOfficialStats(html) {
+async function postJson(url, body, headers = {}) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "User-Agent": "Fuel-Watch-Live/0.1",
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) throw new Error(`Request failed for ${url}: ${response.status}`);
+  return response.json();
+}
+
+function decodeBase64UrlJson(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4 || 4)) % 4);
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function powerBiApiBase(clusterUri = "") {
+  if (!clusterUri) return "";
+  const url = new URL(clusterUri);
+  const parts = url.hostname.split(".");
+  parts[0] = parts[0].replace("-redirect", "").replace("global-", "") + "-api";
+  return `${url.protocol}//${parts.join(".")}`;
+}
+
+function formatIsoDateForDisplay(datePart = "") {
+  const [year, month, day] = datePart.split("-").map(Number);
+  if (!year || !month || !day) return "";
+  const monthName = new Date(Date.UTC(year, month - 1, day)).toLocaleString("en-AU", {
+    month: "short",
+    timeZone: "UTC",
+  });
+  return `${day} ${monthName} ${year}`;
+}
+
+function parseSydneyObservedAt(datePart = "") {
+  const [year, month, day] = datePart.split("-").map(Number);
+  if (!year || !month || !day) return "";
+  const offset = month >= 10 || month <= 3 ? "+11:00" : "+10:00";
+  const candidate = `${datePart}T23:59:00${offset}`;
+  const ms = Date.parse(candidate);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : "";
+}
+
+function parseOfficialStatsFallback(html) {
   const statsAsOfMatch = html.match(/In ([0-9]{4}[–-][0-9]{2}), the total stocks held by industry under the MSO averaged:/i);
   const statsAsOf = statsAsOfMatch ? statsAsOfMatch[1].replace("-", "–") : FALLBACK_DATA.au.official.statsAsOf;
   const powerBiMatch = html.match(/<iframe[^>]+src="([^"]*app\.powerbi\.com\/view\?r=[^"]+)"/i);
@@ -287,7 +339,8 @@ function parseOfficialStats(html) {
     sourceName: "DCCEEW",
     sourceUrl: SOURCE_URLS.dcceew,
     statsAsOf,
-    note: "Parsed from the official DCCEEW MSO statistics page.",
+    observedAt: "",
+    note: "Quarterly fallback parsed from the official DCCEEW MSO statistics page.",
     powerBiUrl,
     fuels: fuelPatterns.map((pattern) => {
       const fallback = fallbackByKey[pattern.key];
@@ -299,7 +352,127 @@ function parseOfficialStats(html) {
         surplusPct: safeNumber(html.match(pattern.surplusRegex)?.[1]?.replace(/,/g, ""), fallback.surplusPct),
       };
     }),
+    parserMode: "fallback",
   };
+}
+
+function extractWeeklyDateLiteral(modelsPayload) {
+  const containers = modelsPayload?.exploration?.sections?.[0]?.visualContainers || [];
+  for (const container of containers) {
+    if (typeof container.query !== "string") continue;
+    const match = container.query.match(/datetime'(\d{4}-\d{2}-\d{2})T00:00:00'/);
+    if (match) return match[1];
+  }
+  return "";
+}
+
+function findDaysVisualQuery(modelsPayload, fieldName) {
+  const containers = modelsPayload?.exploration?.sections?.[0]?.visualContainers || [];
+  return containers.find((container) => typeof container.config === "string" && container.config.includes(fieldName)) || null;
+}
+
+function buildPowerBiQueryRequest(queryString, datasetId, reportId) {
+  return {
+    Query: JSON.parse(queryString),
+    CacheKey: queryString,
+    QueryId: "",
+    ApplicationContext: {
+      DatasetId: datasetId,
+      Sources: [{ ReportId: reportId }],
+    },
+  };
+}
+
+function extractPowerBiScalarValue(result) {
+  return Number(result?.result?.data?.dsr?.DS?.[0]?.PH?.[0]?.DM0?.[0]?.M0);
+}
+
+async function fetchAuWeeklyPowerBiStats(powerBiUrl) {
+  const powerBiHtml = await fetchText(powerBiUrl);
+  const clusterMatch = powerBiHtml.match(/var resolvedClusterUri = '([^']+)'/);
+  const apiBase = powerBiApiBase(clusterMatch?.[1] || "");
+  const reportToken = new URL(powerBiUrl).searchParams.get("r");
+  if (!apiBase || !reportToken) {
+    throw new Error("Unable to resolve public Power BI API context");
+  }
+
+  const decoded = decodeBase64UrlJson(reportToken);
+  const reportId = decoded.k;
+  const requestHeaders = {
+    ActivityId: "fuel-watch-live",
+    RequestId: crypto.randomUUID(),
+    "X-PowerBI-ResourceKey": reportId,
+  };
+
+  const modelsPayload = await fetchJson(`${apiBase}/public/reports/${reportId}/modelsAndExploration?preferReadOnlySession=true`, requestHeaders);
+  const model = modelsPayload?.models?.[0];
+  const selectedDate = extractWeeklyDateLiteral(modelsPayload);
+  if (!model?.id || !model?.dbName || !selectedDate) {
+    throw new Error("Unable to parse weekly Power BI report metadata");
+  }
+
+  const petrolVisual = findDaysVisualQuery(modelsPayload, "MSO_Days_Petrol");
+  const jetVisual = findDaysVisualQuery(modelsPayload, "MSO_Days_JetFuel");
+  const dieselVisual = findDaysVisualQuery(modelsPayload, "MSO_Days_Diesel");
+  if (!petrolVisual?.query || !jetVisual?.query || !dieselVisual?.query) {
+    throw new Error("Unable to locate Australia weekly fuel-day visuals");
+  }
+
+  const queryBody = {
+    version: "1.0.0",
+    queries: [
+      buildPowerBiQueryRequest(petrolVisual.query, model.dbName, reportId),
+      buildPowerBiQueryRequest(jetVisual.query, model.dbName, reportId),
+      buildPowerBiQueryRequest(dieselVisual.query, model.dbName, reportId),
+    ],
+    cancelQueries: [],
+    modelId: model.id,
+  };
+
+  const queryPayload = await postJson(`${apiBase}/public/reports/querydata?synchronous=true`, queryBody, requestHeaders);
+  const [petrol, jet, diesel] = (queryPayload?.results || []).map(extractPowerBiScalarValue);
+  if (![petrol, jet, diesel].every(Number.isFinite)) {
+    throw new Error("Australia weekly Power BI values were incomplete");
+  }
+
+  return {
+    statsAsOf: formatIsoDateForDisplay(selectedDate),
+    observedAt: parseSydneyObservedAt(selectedDate),
+    lastRefreshTime: model.LastRefreshTime || "",
+    fuels: { petrol, jet, diesel },
+  };
+}
+
+async function parseOfficialStats(html) {
+  const fallback = parseOfficialStatsFallback(html);
+  if (!fallback.powerBiUrl) {
+    return fallback;
+  }
+
+  try {
+    const weekly = await fetchAuWeeklyPowerBiStats(fallback.powerBiUrl);
+    const fallbackByKey = Object.fromEntries(fallback.fuels.map((fuel) => [fuel.key, fuel]));
+    return {
+      sourceName: "DCCEEW weekly",
+      sourceUrl: SOURCE_URLS.dcceew,
+      statsAsOf: weekly.statsAsOf,
+      observedAt: weekly.observedAt,
+      note: "Parsed from the official DCCEEW public Power BI weekly snapshot.",
+      powerBiUrl: fallback.powerBiUrl,
+      fuels: [
+        { ...fallbackByKey.petrol, days: weekly.fuels.petrol },
+        { ...fallbackByKey.jet, days: weekly.fuels.jet },
+        { ...fallbackByKey.diesel, days: weekly.fuels.diesel },
+      ],
+      parserMode: "weekly",
+      powerBiRefreshedAt: weekly.lastRefreshTime,
+    };
+  } catch (error) {
+    return {
+      ...fallback,
+      note: `${fallback.note} Weekly Power BI extraction failed: ${error.message}`,
+    };
+  }
 }
 
 function parseNzOfficialStats(html) {
@@ -554,7 +727,10 @@ export async function onRequestGet() {
 
   try {
     const dcceewHtml = await fetchText(SOURCE_URLS.dcceew);
-    auOfficial = parseOfficialStats(dcceewHtml);
+    auOfficial = await parseOfficialStats(dcceewHtml);
+    if (auOfficial.parserMode !== "weekly") {
+      warnings.push("Using fallback official stats: Australia weekly Power BI unavailable");
+    }
   } catch (error) {
     warnings.push(`Using fallback official stats: ${error.message}`);
   }
