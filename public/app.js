@@ -226,7 +226,7 @@ function miniCountdownHtml(country, fuel, refreshedAt) {
     "",
     fuel.days,
     refreshedAt,
-    `${country.official.statsAsOf}|${fuel.key}|${fuel.days}`,
+    `${country.official.statsAsOf}|${country.summary.basisAt || refreshedAt}|${fuel.key}|${fuel.days}`,
   );
   const countdown = getCountdownParts(depletionAt, fuel.days, refreshedAt);
   return `
@@ -254,7 +254,7 @@ function renderCountdownBoard(data) {
         country.summary.depletionAt,
         country.summary.tightestDays,
         data.refreshedAt,
-        `${country.summary.statsAsOf}|tightest|${country.summary.tightestFuel}|${country.summary.tightestDays}`,
+        `${country.summary.statsAsOf}|${country.summary.basisAt || data.refreshedAt}|tightest|${country.summary.tightestFuel}|${country.summary.tightestDays}`,
       );
       const countdown = getCountdownParts(
         primaryTarget,

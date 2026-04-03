@@ -107,7 +107,7 @@ function miniCountdownHtml(country, fuel, refreshedAt) {
     "",
     fuel.days,
     refreshedAt,
-    `${country.official.statsAsOf}|${fuel.key}|${fuel.days}`,
+    `${country.official.statsAsOf}|${country.summary.basisAt || refreshedAt}|${fuel.key}|${fuel.days}`,
   );
   return `
     <div class="mini-countdown-card">
@@ -142,7 +142,7 @@ function render(data) {
         country.summary.depletionAt,
         country.summary.tightestDays,
         data.refreshedAt,
-        `${country.summary.statsAsOf}|tightest|${country.summary.tightestFuel}|${country.summary.tightestDays}`,
+        `${country.summary.statsAsOf}|${country.summary.basisAt || data.refreshedAt}|tightest|${country.summary.tightestFuel}|${country.summary.tightestDays}`,
       );
       return `
         <article class="countdown-card ${cardClass}">
