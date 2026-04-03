@@ -23,10 +23,8 @@ const SOURCE_URLS = {
     "https://www.dcceew.gov.au/energy/security/australias-fuel-security/minimum-stockholding-obligation/statistics",
   aipLanding: "https://www.aip.com.au/pricing/weekly-prices-reports",
   nzOfficial: "https://www.mbie.govt.nz/about/news/fuel-stocks-update/",
-  brentChart:
-    "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?range=1mo&interval=1d",
-  audUsdChart:
-    "https://query1.finance.yahoo.com/v8/finance/chart=AUDUSD=X?range=1mo&interval=1d",
+  brentCsv: "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILBRENTEU",
+  audUsdRange: "https://api.frankfurter.dev/v1/2026-03-01..?base=AUD&symbols=USD",
 };
 
 const FALLBACK_DATA = {
@@ -336,6 +334,18 @@ async function fetchJson(url) {
   return response.json();
 }
 
+async function fetchCsv(url) {
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "Fuel-Watch-Live/0.1",
+      Accept: "text/csv,text/plain",
+    },
+  });
+
+  if (!response.ok) throw new Error(`Request failed for ${url}: ${response.status}`);
+  return response.text();
+}
+
 function parseOfficialStats(html) {
   const statsAsOfMatch = html.match(/In ([0-9]{4}[–-][0-9]{2}), the total stocks held by industry under the MSO averaged:/i);
   const statsAsOf = statsAsOfMatch ? statsAsOfMatch[1].replace("-", "–") : FALLBACK_DATA.au.official.statsAsOf;
@@ -449,20 +459,10 @@ async function fetchReports() {
   };
 }
 
-function parseYahooSeries(json, label) {
-  const result = json?.chart?.result?.[0];
-  const timestamps = result?.timestamp || [];
-  const closes = result?.indicators?.quote?.[0]?.close || [];
-
-  const points = timestamps
-    .map((ts, index) => ({
-      timestamp: ts * 1000,
-      value: closes[index],
-    }))
-    .filter((point) => Number.isFinite(point.value));
-
-  const latest = points.at(-1)?.value ?? null;
-  const previous = points.at(-2)?.value ?? latest;
+function buildSeries(label, points) {
+  const filtered = points.filter((point) => Number.isFinite(point.value));
+  const latest = filtered.at(-1)?.value ?? null;
+  const previous = filtered.at(-2)?.value ?? latest;
   const change = latest !== null && previous !== null ? latest - previous : null;
 
   return {
@@ -471,23 +471,52 @@ function parseYahooSeries(json, label) {
     previous,
     change,
     direction: change === null ? "flat" : change > 0 ? "up" : change < 0 ? "down" : "flat",
-    points: points.slice(-14).map((point) => ({
+    points: filtered.slice(-14).map((point) => ({
       date: new Date(point.timestamp).toISOString(),
       value: point.value,
     })),
   };
 }
 
+function parseFredCsvSeries(csv, label) {
+  const lines = csv.trim().split(/\r?\n/).slice(1);
+  const points = lines
+    .map((line) => {
+      const [date, value] = line.split(",");
+      const parsed = Number(value);
+      const timestamp = Date.parse(`${date}T00:00:00Z`);
+      return {
+        timestamp,
+        value: Number.isFinite(parsed) ? parsed : null,
+      };
+    })
+    .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.value));
+
+  return buildSeries(label, points);
+}
+
+function parseFrankfurterRange(json, label) {
+  const points = Object.entries(json?.rates || {})
+    .map(([date, entry]) => ({
+      timestamp: Date.parse(`${date}T00:00:00Z`),
+      value: Number(entry?.USD),
+    }))
+    .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.value))
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  return buildSeries(label, points);
+}
+
 async function fetchMarketData() {
-  const [brentJson, audUsdJson] = await Promise.all([
-    fetchJson(SOURCE_URLS.brentChart),
-    fetchJson(SOURCE_URLS.audUsdChart),
+  const [brentCsv, audUsdJson] = await Promise.all([
+    fetchCsv(SOURCE_URLS.brentCsv),
+    fetchJson(SOURCE_URLS.audUsdRange),
   ]);
 
   return {
-    brent: parseYahooSeries(brentJson, "Brent Crude"),
-    audUsd: parseYahooSeries(audUsdJson, "AUD/USD"),
-    sourceName: "Yahoo Finance chart endpoint",
+    brent: parseFredCsvSeries(brentCsv, "Brent Crude"),
+    audUsd: parseFrankfurterRange(audUsdJson, "AUD/USD"),
+    sourceName: "FRED Brent + Frankfurter FX",
   };
 }
 
