@@ -137,7 +137,7 @@ function renderSupportStrip(data) {
   }
 }
 
-const COUNTDOWN_STORAGE_KEY = "ttfw-countdown-targets-v1";
+const COUNTDOWN_STORAGE_KEY = "ttfw-countdown-targets-v2";
 
 function readStoredTargets() {
   try {

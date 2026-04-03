@@ -6,7 +6,7 @@ const elements = {
   footerUpdated: document.getElementById("footerUpdated"),
 };
 
-const COUNTDOWN_STORAGE_KEY = "ttfw-countdown-targets-v1";
+const COUNTDOWN_STORAGE_KEY = "ttfw-countdown-targets-v2";
 
 function formatDateTime(value) {
   const date = new Date(value);
