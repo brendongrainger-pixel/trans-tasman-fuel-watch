@@ -307,7 +307,28 @@ function safeNumber(value, fallback = null) {
 function parseObservedAt(dateText, publishedText = "") {
   const publishedYearMatch = String(publishedText).match(/(20\d{2})/);
   const year = publishedYearMatch?.[1] || String(new Date().getFullYear());
-  const candidate = `${dateText} ${year} 23:59:00 +12:00`;
+  const match = String(dateText).match(/(\d{1,2})\s+([A-Za-z]+)/);
+  if (!match) return "";
+  const [, dayText, monthText] = match;
+  const monthMap = {
+    january: 1,
+    february: 2,
+    march: 3,
+    april: 4,
+    may: 5,
+    june: 6,
+    july: 7,
+    august: 8,
+    september: 9,
+    october: 10,
+    november: 11,
+    december: 12,
+  };
+  const month = monthMap[monthText.toLowerCase()];
+  const day = Number(dayText);
+  if (!month || !Number.isFinite(day)) return "";
+  const offset = month >= 9 || month <= 3 ? "+13:00" : "+12:00";
+  const candidate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T23:59:00${offset}`;
   const ms = Date.parse(candidate);
   return Number.isFinite(ms) ? new Date(ms).toISOString() : "";
 }
