@@ -137,6 +137,24 @@ function renderSupportStrip(data) {
   }
 }
 
+const COUNTDOWN_STORAGE_KEY = "ttfw-countdown-targets-v1";
+
+function readStoredTargets() {
+  try {
+    return JSON.parse(localStorage.getItem(COUNTDOWN_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredTargets(payload) {
+  try {
+    localStorage.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage failures so the dashboard still works.
+  }
+}
+
 function getCountdownParts(targetIso, fallbackDays = null, refreshedAt = null) {
   let targetMs = new Date(targetIso).getTime();
 
@@ -168,8 +186,48 @@ function getCountdownParts(targetIso, fallbackDays = null, refreshedAt = null) {
   };
 }
 
-function miniCountdownHtml(fuel, refreshedAt) {
-  const depletionAt = isoFromDaysAndRefresh(fuel.days, refreshedAt);
+function isoFromDaysAndRefresh(days, refreshedAt) {
+  const refreshMs = new Date(refreshedAt).getTime();
+  if (!Number.isFinite(refreshMs)) return "";
+  return new Date(refreshMs + Number(days) * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function resolveStableTarget(key, targetIso, fallbackDays, refreshedAt, fingerprint) {
+  const fallbackIso = isoFromDaysAndRefresh(fallbackDays, refreshedAt);
+  const candidateIso = targetIso || fallbackIso;
+  const candidateMs = new Date(candidateIso).getTime();
+
+  if (!Number.isFinite(candidateMs)) {
+    return "";
+  }
+
+  const stored = readStoredTargets();
+  const existing = stored[key];
+
+  if (
+    existing &&
+    existing.fingerprint === fingerprint &&
+    Number.isFinite(new Date(existing.targetIso).getTime())
+  ) {
+    return existing.targetIso;
+  }
+
+  stored[key] = {
+    fingerprint,
+    targetIso: new Date(candidateMs).toISOString(),
+  };
+  writeStoredTargets(stored);
+  return stored[key].targetIso;
+}
+
+function miniCountdownHtml(country, fuel, refreshedAt) {
+  const depletionAt = resolveStableTarget(
+    `${country.countryCode}:${fuel.key}`,
+    "",
+    fuel.days,
+    refreshedAt,
+    `${country.official.statsAsOf}|${fuel.key}|${fuel.days}`,
+  );
   const countdown = getCountdownParts(depletionAt, fuel.days, refreshedAt);
   return `
     <div class="mini-countdown-card">
@@ -187,18 +245,19 @@ function miniCountdownHtml(fuel, refreshedAt) {
   `;
 }
 
-function isoFromDaysAndRefresh(days, refreshedAt) {
-  const refreshMs = new Date(refreshedAt).getTime();
-  if (!Number.isFinite(refreshMs)) return "";
-  return new Date(refreshMs + Number(days) * 24 * 60 * 60 * 1000).toISOString();
-}
-
 function renderCountdownBoard(data) {
   const countries = Object.values(data.countries);
   elements.countdownGrid.innerHTML = countries
     .map((country) => {
-      const countdown = getCountdownParts(
+      const primaryTarget = resolveStableTarget(
+        `${country.countryCode}:tightest`,
         country.summary.depletionAt,
+        country.summary.tightestDays,
+        data.refreshedAt,
+        `${country.summary.statsAsOf}|tightest|${country.summary.tightestFuel}|${country.summary.tightestDays}`,
+      );
+      const countdown = getCountdownParts(
+        primaryTarget,
         country.summary.tightestDays,
         data.refreshedAt,
       );
@@ -214,7 +273,7 @@ function renderCountdownBoard(data) {
           </div>
           <div
             class="countdown-timer"
-            data-countdown-target="${country.summary.depletionAt || ""}"
+            data-countdown-target="${primaryTarget || ""}"
             data-countdown-days="${country.summary.tightestDays}"
             data-countdown-refresh="${data.refreshedAt}"
           >
@@ -224,7 +283,7 @@ function renderCountdownBoard(data) {
             Based on ${formatNumber(country.summary.tightestDays, 1)} days of official cover. End point: ${formatDateTime(country.summary.depletionAt)}
           </div>
           <div class="mini-countdown-grid">
-            ${country.official.fuels.map((fuel) => miniCountdownHtml(fuel, data.refreshedAt)).join("")}
+            ${country.official.fuels.map((fuel) => miniCountdownHtml(country, fuel, data.refreshedAt)).join("")}
           </div>
         </article>
       `;

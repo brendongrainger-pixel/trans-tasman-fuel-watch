@@ -2,6 +2,7 @@ const SOURCE_URLS = {
   dcceew:
     "https://www.dcceew.gov.au/energy/security/australias-fuel-security/minimum-stockholding-obligation/statistics",
   aipLanding: "https://www.aip.com.au/pricing/weekly-prices-reports",
+  nzOfficial: "https://www.mbie.govt.nz/about/news/fuel-stocks-update/",
   brentChart:
     "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?range=1mo&interval=1d",
   audUsdChart:
@@ -63,7 +64,7 @@ const FALLBACK_DATA = {
     countryName: "New Zealand",
     official: {
       sourceName: "MBIE",
-      sourceUrl: "https://www.mbie.govt.nz/about/news/fuel-stocks-update/",
+      sourceUrl: SOURCE_URLS.nzOfficial,
       statsAsOf: "22 March 2026",
       note: "Manual fallback based on latest published MBIE update context.",
       powerBiUrl: "",
@@ -88,7 +89,7 @@ const FALLBACK_DATA = {
           key: "official",
           label: "MBIE update",
           title: "MBIE fuel stocks update",
-          url: "https://www.mbie.govt.nz/about/news/fuel-stocks-update/",
+          url: SOURCE_URLS.nzOfficial,
           imageUrl: "",
           weekEnding: "Latest official update",
         },
@@ -123,6 +124,59 @@ const SCENARIOS = [
     description: "Assumes heavy restrictions stretching available stock further.",
   },
 ];
+
+const INTEL_TRACKERS = {
+  au: {
+    title: "Australia tanker and port intel",
+    description:
+      "Manual support page for checking likely tanker arrivals, berth activity, and offload context alongside the official stock baseline.",
+    trackers: [
+      {
+        label: "Queensland shipping movements (QSHIPS)",
+        url: "https://www.tmr.qld.gov.au/msqinternet/shipping/shipping-movements",
+        note: "Best public Queensland vessel-movement source for Brisbane-area tanker checks.",
+      },
+      {
+        label: "Port Botany daily vessel movements",
+        url: "https://www.portauthoritynsw.com.au/port-operations/port-botany/port-botany-daily-vessel-movements",
+        note: "Useful for product and chemical tanker arrivals into one of Australia's main liquid-fuel gateways.",
+      },
+      {
+        label: "Brisbane port procedures",
+        url: "https://www.tmr.qld.gov.au/msqinternet/shipping/port-procedures/port-procedures-brisbane",
+        note: "Background reference for Brisbane liquid terminals and vessel-movement context.",
+      },
+    ],
+  },
+  nz: {
+    title: "New Zealand tanker and port intel",
+    description:
+      "Manual support page for tracking port arrivals and in-port status before any official stock update changes appear.",
+    trackers: [
+      {
+        label: "Port of Auckland expected arrivals",
+        url: "https://www.poal.co.nz/operations/schedules/arrivals",
+        note: "Public arrival schedule with timestamps, previous port, and CSV export.",
+      },
+      {
+        label: "Port of Auckland vessels in port",
+        url: "https://www.poal.co.nz/operations/schedules/vessels-in-port",
+        note: "Good for checking whether a likely tanker has actually berthed and remains in port.",
+      },
+      {
+        label: "MBIE fuel stocks update",
+        url: "https://www.mbie.govt.nz/about/news/fuel-stocks-update/",
+        note: "Official NZ baseline used by the stream when public updates are published.",
+      },
+    ],
+  },
+  checklist: [
+    "Look for vessel types like oil tanker, chemical/products tanker, bunker vessel, or known fuel ships.",
+    "Treat an arrival as shipping intel only, not an automatic stock increase in the countdown.",
+    "Expect the stream countdown to change only after the underlying public stock source updates.",
+    "Use this page for manual operational context and keep the on-air page focused on the official baseline.",
+  ],
+};
 
 function isoDateAfterDays(days) {
   const date = new Date();
@@ -206,6 +260,34 @@ function parseOfficialStats(html) {
         surplusPct: safeNumber(html.match(pattern.surplusRegex)?.[1]?.replace(/,/g, ""), fallback.surplusPct),
       };
     }),
+  };
+}
+
+function parseNzOfficialStats(html) {
+  const text = stripTags(html);
+  const statsAsOfMatch = text.match(/As at\s+11:59PM on\s+([A-Za-z]+\s+\d{1,2}\s+[A-Za-z]+)[,]?\s+the industry confirmed/i);
+  const publishedMatch = text.match(/Published:\s*([0-9]{1,2}\s+[A-Za-z]+\s+20[0-9]{2})/i);
+  const statsAsOf = statsAsOfMatch?.[1] || publishedMatch?.[1] || FALLBACK_DATA.nz.official.statsAsOf;
+
+  const rowMatch = text.match(
+    /Total NZ stock \(days cover\)\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)/i,
+  );
+
+  if (!rowMatch) {
+    throw new Error("Unable to parse MBIE total stock table");
+  }
+
+  return {
+    sourceName: "MBIE",
+    sourceUrl: SOURCE_URLS.nzOfficial,
+    statsAsOf,
+    note: "Parsed from the official MBIE fuel stocks update.",
+    powerBiUrl: "",
+    fuels: [
+      { key: "petrol", label: "Petrol", days: safeNumber(rowMatch[1], FALLBACK_DATA.nz.official.fuels[0].days), volumeMl: null, surplusPct: null },
+      { key: "diesel", label: "Diesel", days: safeNumber(rowMatch[2], FALLBACK_DATA.nz.official.fuels[2].days), volumeMl: null, surplusPct: null },
+      { key: "jet", label: "Jet Fuel", days: safeNumber(rowMatch[3], FALLBACK_DATA.nz.official.fuels[1].days), volumeMl: null, surplusPct: null },
+    ],
   };
 }
 
@@ -318,7 +400,7 @@ function buildCountrySummary(country) {
   };
 }
 
-function buildSourceStatus(auCountry, market, warnings) {
+function buildSourceStatus(auCountry, nzCountry, market, warnings) {
   return [
     {
       label: "Official reserves",
@@ -337,8 +419,8 @@ function buildSourceStatus(auCountry, market, warnings) {
     },
     {
       label: "NZ official baseline",
-      status: "Fallback",
-      detail: `${FALLBACK_DATA.nz.official.sourceName} ${FALLBACK_DATA.nz.official.statsAsOf}`,
+      status: warnings.some((item) => item.includes("NZ official")) ? "Fallback" : "Live",
+      detail: `${nzCountry.official.sourceName} ${nzCountry.official.statsAsOf}`,
     },
   ];
 }
@@ -372,13 +454,14 @@ function buildPayload(auCountry, nzCountry, market, warnings) {
     ],
     hostNotes: [],
     warnings,
-    sourceStatus: buildSourceStatus(auCountry, market, warnings),
+    sourceStatus: buildSourceStatus(auCountry, nzCountry, market, warnings),
     sources: [
       { label: "DCCEEW MSO statistics", url: SOURCE_URLS.dcceew },
       { label: "AIP weekly prices landing page", url: SOURCE_URLS.aipLanding },
-      { label: "MBIE fuel stocks update", url: FALLBACK_DATA.nz.official.sourceUrl },
+      { label: "MBIE fuel stocks update", url: SOURCE_URLS.nzOfficial },
       { label: "Brent market feed", url: "https://finance.yahoo.com/quote/BZ=F/" },
     ],
+    intel: INTEL_TRACKERS,
     history: [],
   };
 }
@@ -387,7 +470,7 @@ export async function onRequestGet() {
   const warnings = [];
   let auOfficial = FALLBACK_DATA.au.official;
   let auReports = FALLBACK_DATA.au.reports;
-  const nzCountry = structuredClone(FALLBACK_DATA.nz);
+  let nzOfficial = FALLBACK_DATA.nz.official;
   let market = {
     brent: { label: "Brent Crude", current: null, change: null, direction: "flat", points: [] },
     audUsd: { label: "AUD/USD", current: null, change: null, direction: "flat", points: [] },
@@ -408,6 +491,13 @@ export async function onRequestGet() {
   }
 
   try {
+    const nzHtml = await fetchText(SOURCE_URLS.nzOfficial);
+    nzOfficial = parseNzOfficialStats(nzHtml);
+  } catch (error) {
+    warnings.push(`Using fallback NZ official stats: ${error.message}`);
+  }
+
+  try {
     market = await fetchMarketData();
   } catch (error) {
     warnings.push(`Market feed unavailable: ${error.message}`);
@@ -417,6 +507,10 @@ export async function onRequestGet() {
     ...structuredClone(FALLBACK_DATA.au),
     official: auOfficial,
     reports: auReports,
+  };
+  const nzCountry = {
+    ...structuredClone(FALLBACK_DATA.nz),
+    official: nzOfficial,
   };
 
   const payload = buildPayload(auCountry, nzCountry, market, warnings);

@@ -6,6 +6,8 @@ const elements = {
   footerUpdated: document.getElementById("footerUpdated"),
 };
 
+const COUNTDOWN_STORAGE_KEY = "ttfw-countdown-targets-v1";
+
 function formatDateTime(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "Unknown time";
@@ -22,6 +24,56 @@ function formatNumber(value, decimals = 0) {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value);
+}
+
+function readStoredTargets() {
+  try {
+    return JSON.parse(localStorage.getItem(COUNTDOWN_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredTargets(payload) {
+  try {
+    localStorage.setItem(COUNTDOWN_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage failures so the countdown still renders.
+  }
+}
+
+function isoFromDaysAndRefresh(days, refreshedAt) {
+  const refreshMs = new Date(refreshedAt).getTime();
+  if (!Number.isFinite(refreshMs)) return "";
+  return new Date(refreshMs + Number(days) * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function resolveStableTarget(key, targetIso, fallbackDays, refreshedAt, fingerprint) {
+  const fallbackIso = isoFromDaysAndRefresh(fallbackDays, refreshedAt);
+  const candidateIso = targetIso || fallbackIso;
+  const candidateMs = new Date(candidateIso).getTime();
+
+  if (!Number.isFinite(candidateMs)) {
+    return "";
+  }
+
+  const stored = readStoredTargets();
+  const existing = stored[key];
+
+  if (
+    existing &&
+    existing.fingerprint === fingerprint &&
+    Number.isFinite(new Date(existing.targetIso).getTime())
+  ) {
+    return existing.targetIso;
+  }
+
+  stored[key] = {
+    fingerprint,
+    targetIso: new Date(candidateMs).toISOString(),
+  };
+  writeStoredTargets(stored);
+  return stored[key].targetIso;
 }
 
 function getCountdownParts(targetIso, fallbackDays = null, refreshedAt = null) {
@@ -49,14 +101,14 @@ function getCountdownParts(targetIso, fallbackDays = null, refreshedAt = null) {
   return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 }
 
-function isoFromDaysAndRefresh(days, refreshedAt) {
-  const refreshMs = new Date(refreshedAt).getTime();
-  if (!Number.isFinite(refreshMs)) return "";
-  return new Date(refreshMs + Number(days) * 24 * 60 * 60 * 1000).toISOString();
-}
-
-function miniCountdownHtml(fuel, refreshedAt) {
-  const depletionAt = isoFromDaysAndRefresh(fuel.days, refreshedAt);
+function miniCountdownHtml(country, fuel, refreshedAt) {
+  const depletionAt = resolveStableTarget(
+    `${country.countryCode}:${fuel.key}`,
+    "",
+    fuel.days,
+    refreshedAt,
+    `${country.official.statsAsOf}|${fuel.key}|${fuel.days}`,
+  );
   return `
     <div class="mini-countdown-card">
       <div class="mini-countdown-label">${fuel.label}</div>
@@ -85,6 +137,13 @@ function render(data) {
   elements.countdownGrid.innerHTML = countries
     .map((country) => {
       const cardClass = country.countryCode === "AU" ? "primary-au" : "primary-nz";
+      const primaryTarget = resolveStableTarget(
+        `${country.countryCode}:tightest`,
+        country.summary.depletionAt,
+        country.summary.tightestDays,
+        data.refreshedAt,
+        `${country.summary.statsAsOf}|tightest|${country.summary.tightestFuel}|${country.summary.tightestDays}`,
+      );
       return `
         <article class="countdown-card ${cardClass}">
           <div class="countdown-topline">
@@ -97,17 +156,17 @@ function render(data) {
           </div>
           <div
             class="countdown-timer"
-            data-countdown-target="${country.summary.depletionAt || ""}"
+            data-countdown-target="${primaryTarget || ""}"
             data-countdown-days="${country.summary.tightestDays}"
             data-countdown-refresh="${data.refreshedAt}"
           >
-            ${getCountdownParts(country.summary.depletionAt, country.summary.tightestDays, data.refreshedAt)}
+            ${getCountdownParts(primaryTarget, country.summary.tightestDays, data.refreshedAt)}
           </div>
           <div class="countdown-subtext">
             ${formatNumber(country.summary.tightestDays, 1)} days of cover remaining from the tightest official fuel lane.
           </div>
           <div class="mini-countdown-grid">
-            ${country.official.fuels.map((fuel) => miniCountdownHtml(fuel, data.refreshedAt)).join("")}
+            ${country.official.fuels.map((fuel) => miniCountdownHtml(country, fuel, data.refreshedAt)).join("")}
           </div>
           <div class="countdown-filler">
             <div class="countdown-filler-text">
