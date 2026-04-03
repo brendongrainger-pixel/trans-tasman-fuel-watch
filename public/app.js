@@ -287,7 +287,7 @@ function renderCountdownBoard(data) {
             ${countdown.text}
           </div>
           <div class="countdown-subtext">
-            Based on ${formatNumber(country.summary.tightestDays, 1)} days of official cover. End point: ${formatDateTime(country.summary.depletionAt)}
+            Based on ${formatNumber(country.summary.tightestDays, 1)} days of reported official cover from ${country.summary.statsAsOf}. Countdown end point: ${formatDateTime(country.summary.depletionAt)}
           </div>
           <div class="mini-countdown-grid">
             ${country.official.fuels.map((fuel) => miniCountdownHtml(country, fuel, data.refreshedAt)).join("")}

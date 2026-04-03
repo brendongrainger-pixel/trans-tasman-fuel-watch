@@ -170,14 +170,14 @@ function render(data) {
             ${getCountdownParts(primaryTarget, country.summary.tightestDays, data.refreshedAt)}
           </div>
           <div class="countdown-subtext">
-            ${formatNumber(country.summary.tightestDays, 1)} days of cover remaining from the tightest official fuel lane.
+            ${formatNumber(country.summary.tightestDays, 1)} days of reported cover from the tightest official fuel lane, counted down from ${country.summary.statsAsOf}.
           </div>
           <div class="mini-countdown-grid">
             ${country.official.fuels.map((fuel) => miniCountdownHtml(country, fuel, data.refreshedAt)).join("")}
           </div>
           <div class="countdown-filler">
             <div class="countdown-filler-text">
-              Live countdown board for ${country.countryName}. Primary clock tracks the tightest official fuel lane.
+              Live countdown board for ${country.countryName}. Primary clock tracks the tightest official fuel lane from the source observation date.
             </div>
           </div>
         </article>
