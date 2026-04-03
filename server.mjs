@@ -376,12 +376,14 @@ function parseOfficialStats(html) {
 
 function parseNzOfficialStats(html) {
   const text = stripTags(html);
-  const statsAsOfMatch = text.match(/As at\s+11:59PM on\s+(?:[A-Za-z]+\s+)?(\d{1,2}\s+[A-Za-z]+)[,]?\s+the industry confirmed/i);
+  const statsAsOfMatch = html.match(
+    /Current fuel stock as at\s*11:59PM\s*(?:[A-Za-z]+\s+)?(\d{1,2}\s+[A-Za-z]+)\s*\(as days'? cover\)/i,
+  );
   const publishedMatch = text.match(/Published:\s*([0-9]{1,2}\s+[A-Za-z]+\s+20[0-9]{2})/i);
   const statsAsOf = statsAsOfMatch?.[1] || publishedMatch?.[1] || FALLBACK_DATA.nz.official.statsAsOf;
 
-  const rowMatch = text.match(
-    /Total NZ stock(?:\s*\(days cover\))?\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)(?:\s+[0-9]+(?:\.[0-9]+)?)?/i,
+  const rowMatch = html.match(
+    /<td><strong>Total NZ stock\*<\/strong><\/td>\s*<td><strong>(?:&nbsp;|\s)*<\/strong><\/td>\s*<td><strong>([0-9]+(?:\.[0-9]+)?)<\/strong><\/td>\s*<td><strong>([0-9]+(?:\.[0-9]+)?)<\/strong><\/td>\s*<td><strong>([0-9]+(?:\.[0-9]+)?)<\/strong><\/td>/i,
   );
 
   if (!rowMatch) {
