@@ -376,12 +376,12 @@ function parseOfficialStats(html) {
 
 function parseNzOfficialStats(html) {
   const text = stripTags(html);
-  const statsAsOfMatch = text.match(/As at\s+11:59PM on\s+([A-Za-z]+\s+\d{1,2}\s+[A-Za-z]+)[,]?\s+the industry confirmed/i);
+  const statsAsOfMatch = text.match(/As at\s+11:59PM on\s+(?:[A-Za-z]+\s+)?(\d{1,2}\s+[A-Za-z]+)[,]?\s+the industry confirmed/i);
   const publishedMatch = text.match(/Published:\s*([0-9]{1,2}\s+[A-Za-z]+\s+20[0-9]{2})/i);
   const statsAsOf = statsAsOfMatch?.[1] || publishedMatch?.[1] || FALLBACK_DATA.nz.official.statsAsOf;
 
   const rowMatch = text.match(
-    /Total NZ stock \(days cover\)\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)/i,
+    /Total NZ stock(?:\s*\(days cover\))?\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)\s+([0-9]+(?:\.[0-9]+)?)(?:\s+[0-9]+(?:\.[0-9]+)?)?/i,
   );
 
   if (!rowMatch) {
@@ -556,7 +556,7 @@ function buildSourceStatus(official, reports, market, warnings) {
   return [
     {
       label: "Official reserves",
-      status: warnings.some((item) => item.includes("official")) ? "Fallback" : "Live",
+      status: warnings.some((item) => item.includes("fallback official stats")) ? "Fallback" : "Live",
       detail: `${official.sourceName} ${official.statsAsOf}`,
     },
     {
