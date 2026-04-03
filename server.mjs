@@ -304,6 +304,14 @@ function safeNumber(value, fallback = null) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function parseObservedAt(dateText, publishedText = "") {
+  const publishedYearMatch = String(publishedText).match(/(20\d{2})/);
+  const year = publishedYearMatch?.[1] || String(new Date().getFullYear());
+  const candidate = `${dateText} ${year} 23:59:00 +12:00`;
+  const ms = Date.parse(candidate);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : "";
+}
+
 async function fetchText(url) {
   const response = await fetch(url, {
     headers: {
@@ -391,6 +399,7 @@ function parseNzOfficialStats(html) {
   );
   const publishedMatch = text.match(/Published:\s*([0-9]{1,2}\s+[A-Za-z]+\s+20[0-9]{2})/i);
   const statsAsOf = statsAsOfMatch?.[1] || publishedMatch?.[1] || FALLBACK_DATA.nz.official.statsAsOf;
+  const observedAt = statsAsOfMatch ? parseObservedAt(statsAsOfMatch[1], publishedMatch?.[1]) : "";
 
   const rowMatch = html.match(
     /Total NZ stock\*[\s\S]{0,250}?<td>\s*<strong>([0-9]+(?:\.[0-9]+)?)<\/strong>\s*<\/td>[\s\S]{0,120}?<td>\s*<strong>([0-9]+(?:\.[0-9]+)?)<\/strong>\s*<\/td>[\s\S]{0,120}?<td>\s*<strong>([0-9]+(?:\.[0-9]+)?)<\/strong>\s*<\/td>/i,
@@ -404,6 +413,7 @@ function parseNzOfficialStats(html) {
     sourceName: "MBIE",
     sourceUrl: SOURCE_URLS.nzOfficial,
     statsAsOf,
+    observedAt,
     note: "Parsed from the official MBIE fuel stocks update.",
     powerBiUrl: "",
     fuels: [
@@ -603,11 +613,18 @@ function buildSourceStatus(official, reports, market, warnings) {
   ];
 }
 
-function buildCountrySummary(country) {
+function isoDateAfterDaysFrom(days, startIso = "") {
+  const startMs = new Date(startIso).getTime();
+  const baseMs = Number.isFinite(startMs) ? startMs : Date.now();
+  return new Date(baseMs + Number(days) * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function buildCountrySummary(country, refreshedAt) {
   const tightest = [...country.official.fuels].sort((a, b) => a.days - b.days)[0];
   const averageDays =
     country.official.fuels.reduce((sum, fuel) => sum + Number(fuel.days || 0), 0) / country.official.fuels.length;
-  const depletionAt = isoDateAfterDays(tightest.days);
+  const basisAt = country.official.observedAt || refreshedAt;
+  const depletionAt = isoDateAfterDaysFrom(tightest.days, basisAt);
 
   return {
     tightestFuel: tightest.label,
@@ -615,6 +632,7 @@ function buildCountrySummary(country) {
     depletionAt,
     averageDays: Number(averageDays.toFixed(1)),
     statsAsOf: country.official.statsAsOf,
+    basisAt,
   };
 }
 
@@ -679,13 +697,13 @@ export async function buildDashboardData(forceRefresh = false) {
         ...auCountry,
         scenarios: buildScenarios(auCountry.official),
         hostNotes: buildCountryHostNotes(auCountry),
-        summary: buildCountrySummary(auCountry),
+        summary: buildCountrySummary(auCountry, new Date().toISOString()),
       },
       nz: {
         ...nzCountry,
         scenarios: buildScenarios(nzCountry.official),
         hostNotes: buildCountryHostNotes(nzCountry),
-        summary: buildCountrySummary(nzCountry),
+        summary: buildCountrySummary(nzCountry, new Date().toISOString()),
       },
     },
     notes: [
